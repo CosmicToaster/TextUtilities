@@ -207,6 +207,8 @@
 
         // State
         let currentMode = 'md2rt'; // 'md2rt' or 'rt2md'
+        let currentOutputHtml = '';
+        let currentOutputText = '';
 
         // Configure Parsers
         const turndownService = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced', emDelimiter: '*' });
@@ -215,7 +217,16 @@
 
         // Listeners
         input.addEventListener('input', update);
-        input.addEventListener('paste', () => setTimeout(update, 10));
+        input.addEventListener('paste', (e) => {
+            if (currentMode === 'rt2md') {
+                const html = e.clipboardData.getData('text/html');
+                if (html) {
+                    e.preventDefault();
+                    document.execCommand('insertHTML', false, cleanHtml(html));
+                }
+            }
+            setTimeout(update, 10);
+        });
 
         // ── Animated text swap ──
         function animateText(el, newText) {
@@ -374,7 +385,16 @@
                 }
             }
 
-            if (copied) triggerToast("COPIED TO CLIPBOARD");
+            if (copied) {
+                triggerToast("COPIED TO CLIPBOARD");
+                // Load the converted output back into the input and flip mode
+                if (currentMode === 'md2rt') {
+                    input.innerHTML = cleanHtml(currentOutputHtml);
+                } else {
+                    input.textContent = currentOutputText;
+                }
+                toggleMode();
+            }
         }
 
         function fallbackCopyText(text) {
@@ -402,6 +422,32 @@
             toast.classList.remove('toast-animate');
             void toast.offsetWidth;
             toast.classList.add('toast-animate');
+        }
+
+        // Strip highlight/bg colors and text colors from HTML while keeping
+        // bold, italic, underline, and all structural formatting.
+        function cleanHtml(html) {
+            const tmp = document.createElement('div');
+            tmp.innerHTML = html;
+
+            // Remove color and background from inline styles
+            tmp.querySelectorAll('[style]').forEach(el => {
+                el.style.color = '';
+                el.style.backgroundColor = '';
+                el.style.background = '';
+                if (!el.getAttribute('style').trim()) el.removeAttribute('style');
+            });
+
+            // Remove legacy color / bgcolor attributes
+            tmp.querySelectorAll('[color]').forEach(el => el.removeAttribute('color'));
+            tmp.querySelectorAll('[bgcolor]').forEach(el => el.removeAttribute('bgcolor'));
+
+            // Unwrap <mark> elements (highlighter) — keep their children
+            tmp.querySelectorAll('mark').forEach(el => {
+                el.replaceWith(...Array.from(el.childNodes));
+            });
+
+            return tmp.innerHTML;
         }
     </script>
 </body>
