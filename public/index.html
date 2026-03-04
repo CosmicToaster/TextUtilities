@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Translator</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Marked.js for Markdown -> HTML -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Turndown.js for HTML -> Markdown -->
+    <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
+    <script src="https://unpkg.com/turndown-plugin-gfm/dist/turndown-plugin-gfm.js"></script>
+
+    <style>
+        /* Sporty Minimal Aesthetics */
+        body {
+            background-color: #ffffff;
+            color: #111827;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* Invisible Scrollbars */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Placeholder styling */
+        [contenteditable]:empty:before {
+            content: attr(placeholder);
+            color: #d1d5db;
+            pointer-events: none;
+            display: block;
+            text-align: center;
+        }
+
+        /* Generated Preview Styling */
+        .rich-text-preview h1 { font-size: 2.25rem; font-weight: 800; margin-bottom: 1rem; letter-spacing: -0.05em; text-transform: uppercase; font-style: italic; }
+        .rich-text-preview h2 { font-size: 1.875rem; font-weight: 700; margin-bottom: 0.75rem; letter-spacing: -0.025em; }
+        .rich-text-preview h3 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
+        .rich-text-preview p { margin-bottom: 1rem; line-height: 1.6; color: #374151; }
+        .rich-text-preview strong { font-weight: 700; color: #000; }
+        .rich-text-preview em { font-style: italic; }
+        .rich-text-preview a { color: #2563eb; text-decoration: underline; text-underline-offset: 4px; font-weight: 600; }
+        .rich-text-preview blockquote { border-left: 4px solid #000; padding-left: 1rem; color: #6b7280; font-style: italic; margin: 1rem auto; display: inline-block; text-align: left; }
+
+        /* Centered lists trick for minimal design */
+        .rich-text-preview ul { list-style-type: square; display: inline-block; text-align: left; margin: 0 auto 1rem auto; padding-left: 1.5rem; }
+        .rich-text-preview ol { list-style-type: decimal-leading-zero; display: inline-block; text-align: left; margin: 0 auto 1rem auto; padding-left: 1.5rem; font-weight: 600;}
+        .rich-text-preview li { margin-bottom: 0.5rem; color: #111; }
+
+        /* Minimal Toast */
+        @keyframes toastSlide {
+            0% { transform: translate(-50%, 100%); opacity: 0; }
+            10% { transform: translate(-50%, 0); opacity: 1; }
+            90% { transform: translate(-50%, 0); opacity: 1; }
+            100% { transform: translate(-50%, 100%); opacity: 0; }
+        }
+        .toast-animate { animation: toastSlide 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        /* Prevent mobile browser quirks */
+        html, body {
+            overscroll-behavior: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col items-center p-6 selection:bg-blue-600 selection:text-white">
+
+    <!-- Title / Controls Area -->
+    <div class="shrink-0 flex flex-col items-center w-full max-w-2xl pt-4 pb-8 select-none">
+
+        <!-- Button (Acts as Primary Title) -->
+        <button id="copy-btn" onclick="handleCopy()"
+            class="group flex items-center justify-center gap-5 px-8 sm:px-12 py-4 border-4 border-black rounded-full text-2xl sm:text-3xl font-black italic tracking-tighter uppercase text-black hover:bg-black hover:text-white active:scale-95 transition-all duration-300 focus:outline-none whitespace-nowrap overflow-hidden">
+            <span id="copy-btn-text">COPY TO RICH TEXT</span>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="transform group-hover:scale-110 transition-transform duration-300">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+        </button>
+
+        <!-- Visual Toggle Switch -->
+        <div onclick="toggleMode()" class="mt-8 flex items-center justify-center gap-4 cursor-pointer group">
+            <span id="lbl-md" class="text-xs sm:text-sm font-bold tracking-[0.2em] text-black transition-colors w-24 sm:w-28 text-right select-none">MARKDOWN</span>
+
+            <!-- Sporty Pill Switch -->
+            <div class="relative w-[72px] h-10 bg-black rounded-full p-1.5 transition-transform duration-300 group-active:scale-95 shadow-inner">
+                <div id="tgl-knob" class="w-7 h-7 bg-white rounded-full transform translate-x-0 transition-transform duration-300 ease-in-out shadow-md"></div>
+            </div>
+
+            <span id="lbl-rt" class="text-xs sm:text-sm font-bold tracking-[0.2em] text-gray-400 transition-colors w-24 sm:w-28 text-left select-none">RICH TEXT</span>
+        </div>
+    </div>
+
+    <!-- Content Area: Single vertical scrollable box -->
+    <div class="flex-1 w-full max-w-2xl flex flex-col min-h-0 pb-12 relative group">
+
+        <!-- Scrollable Input Box -->
+        <div id="input-box" contenteditable="true"
+            class="flex-1 w-full overflow-y-auto scrollbar-hide outline-none text-center text-xl sm:text-2xl font-light leading-relaxed text-gray-800 px-4 py-8"
+            placeholder="Type or paste markdown..."></div>
+
+        <!-- Sporty separator line that expands dynamically on focus -->
+        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 w-12 h-1 bg-gray-200 group-focus-within:w-full group-focus-within:bg-blue-600 transition-all duration-500 ease-out rounded-full"></div>
+    </div>
+
+    <!-- Hidden Output Box for Clipboard Fallbacks -->
+    <div id="output-box" class="absolute -left-[9999px] top-0 opacity-0 pointer-events-none rich-text-preview"></div>
+
+    <!-- Sporty Toast Notification -->
+    <div id="toast" class="fixed bottom-8 left-1/2 bg-black text-white px-8 py-3 rounded-none text-xs tracking-[0.2em] font-bold uppercase opacity-0 pointer-events-none transition-transform z-50 shadow-2xl">
+        Copied
+    </div>
+
+    <script>
+        // DOM Elements
+        const input = document.getElementById('input-box');
+        const output = document.getElementById('output-box');
+        const copyBtn = document.getElementById('copy-btn');
+        const copyBtnText = document.getElementById('copy-btn-text');
+        const toast = document.getElementById('toast');
+
+        // Toggle Elements
+        const lblMd = document.getElementById('lbl-md');
+        const lblRt = document.getElementById('lbl-rt');
+        const tglKnob = document.getElementById('tgl-knob');
+
+        // State
+        let currentMode = 'md2rt'; // 'md2rt' or 'rt2md'
+
+        // Configure Parsers
+        const turndownService = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced', emDelimiter: '*' });
+        turndownService.use(turndownPluginGfm.gfm);
+        marked.use({ breaks: true, gfm: true });
+
+        // Listeners
+        input.addEventListener('input', update);
+        input.addEventListener('paste', () => setTimeout(update, 10));
+
+        // Toggle Logic
+        function toggleMode() {
+            // Swap state
+            currentMode = currentMode === 'md2rt' ? 'rt2md' : 'md2rt';
+
+            const newText = currentMode === 'md2rt' ? 'COPY TO RICH TEXT' : 'COPY TO MARKDOWN';
+            const oldText = copyBtnText.innerText;
+
+            // --- Smooth width animation ---
+            // 1. Get start width
+            const startWidth = copyBtn.getBoundingClientRect().width;
+
+            // 2. Temporarily set to auto and insert new text to measure target width
+            copyBtn.style.width = 'auto';
+            copyBtnText.innerText = newText;
+            const endWidth = copyBtn.getBoundingClientRect().width;
+
+            // 3. Revert to start state to prepare for transition
+            copyBtnText.innerText = oldText;
+            copyBtn.style.width = startWidth + 'px';
+
+            // 4. Force browser layout recalculation
+            void copyBtn.offsetWidth;
+
+            // 5. Apply target state to trigger CSS transition
+            copyBtnText.innerText = newText;
+            copyBtn.style.width = endWidth + 'px';
+
+            // 6. Clean up inline styles after transition finishes
+            setTimeout(() => {
+                copyBtn.style.width = '';
+            }, 300);
+
+            // Update UI based on new state
+            if (currentMode === 'md2rt') {
+                input.setAttribute('placeholder', 'Type or paste markdown...');
+
+                // Visual Switch State: Left
+                tglKnob.classList.remove('translate-x-8');
+                lblMd.classList.remove('text-gray-400');
+                lblMd.classList.add('text-black');
+                lblRt.classList.remove('text-black');
+                lblRt.classList.add('text-gray-400');
+            } else {
+                input.setAttribute('placeholder', 'Type or paste rich text...');
+
+                // Visual Switch State: Right
+                tglKnob.classList.add('translate-x-8');
+                lblMd.classList.remove('text-black');
+                lblMd.classList.add('text-gray-400');
+                lblRt.classList.remove('text-gray-400');
+                lblRt.classList.add('text-black');
+            }
+
+            // Re-evaluate current input with the new mode
+            update();
+        }
+
+        // Live Update Logic
+        function update() {
+            const html = input.innerHTML;
+            const text = input.innerText;
+
+            // Generate format in the background hidden container
+            if (currentMode === 'md2rt') {
+                currentOutputHtml = marked.parse(text);
+                output.innerHTML = currentOutputHtml;
+            } else {
+                currentOutputText = turndownService.turndown(html);
+                output.innerText = currentOutputText;
+            }
+        }
+
+        // Cleanup empty divs created by contenteditable on delete
+        input.addEventListener('keyup', (e) => {
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+                if (input.innerText.trim() === '') {
+                    input.innerHTML = '';
+                    update();
+                }
+            }
+        });
+
+        // Robust Copy Logic
+        async function handleCopy() {
+            const text = input.innerText;
+            const html = input.innerHTML;
+
+            // If empty, just show an error toast
+            if (!text.trim() && !html.includes('<img')) {
+                triggerToast("NOTHING TO COPY");
+                return;
+            }
+
+            let copied = false;
+
+            // 1. Attempt modern Clipboard API first
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    if (currentMode === 'md2rt' && window.ClipboardItem) {
+                        const data = new ClipboardItem({
+                            "text/html": new Blob([currentOutputHtml], { type: "text/html" }),
+                            "text/plain": new Blob([output.innerText], { type: "text/plain" })
+                        });
+                        await navigator.clipboard.write([data]);
+                    } else {
+                        await navigator.clipboard.writeText(currentOutputText);
+                    }
+                    copied = true;
+                }
+            } catch (err) {
+                console.warn("Modern clipboard API blocked or failed, failing over to execCommand...", err);
+            }
+
+            // 2. Fallback to older document.execCommand if modern API threw an error
+            if (!copied) {
+                try {
+                    if (currentMode === 'md2rt') {
+                        fallbackCopyRichText(output);
+                    } else {
+                        fallbackCopyText(currentOutputText);
+                    }
+                    copied = true;
+                } catch (fallbackErr) {
+                    console.error('Fallback copy failed', fallbackErr);
+                    alert("Failed to copy. Your browser strictly blocks clipboard access here.");
+                }
+            }
+
+            // 3. Show success notification
+            if (copied) triggerToast("COPIED TO CLIPBOARD");
+        }
+
+        function fallbackCopyText(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textArea);
+        }
+
+        function fallbackCopyRichText(element) {
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            document.execCommand("copy");
+            selection.removeAllRanges();
+        }
+
+        function triggerToast(message) {
+            toast.innerText = message;
+            toast.classList.remove('toast-animate');
+            void toast.offsetWidth; // force browser reflow
+            toast.classList.add('toast-animate');
+        }
+    </script>
+</body>
+</html>
