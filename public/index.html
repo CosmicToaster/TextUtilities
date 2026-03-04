@@ -224,6 +224,14 @@
                     e.preventDefault();
                     document.execCommand('insertHTML', false, cleanHtml(html));
                 }
+            } else {
+                // md2rt: always paste as plain text so HTML doesn't corrupt markdown
+                const html = e.clipboardData.getData('text/html');
+                if (html) {
+                    e.preventDefault();
+                    const text = e.clipboardData.getData('text/plain');
+                    document.execCommand('insertText', false, text);
+                }
             }
             setTimeout(update, 10);
         });
@@ -306,6 +314,13 @@
                 crossfadeLabels(lblRt, lblMd);
                 lblRt.classList.replace('lbl-dim', 'lbl-active');
                 lblMd.classList.replace('lbl-active', 'lbl-dim');
+            }
+
+            // ── Input alignment ──
+            if (currentMode === 'md2rt') {
+                input.classList.replace('text-left', 'text-center');
+            } else {
+                input.classList.replace('text-center', 'text-left');
             }
 
             // ── Separator flash ──
@@ -391,7 +406,7 @@
                 if (currentMode === 'md2rt') {
                     input.innerHTML = cleanHtml(currentOutputHtml);
                 } else {
-                    input.textContent = currentOutputText;
+                    input.innerHTML = textToEditableHtml(currentOutputText);
                 }
                 toggleMode();
             }
@@ -422,6 +437,20 @@
             toast.classList.remove('toast-animate');
             void toast.offsetWidth;
             toast.classList.add('toast-animate');
+        }
+
+        // Convert plain text (with \n) into contenteditable-safe HTML.
+        // Setting textContent on a non-pre div renders \n as spaces, so
+        // innerText reads it back without any line breaks. Using <div> elements
+        // matches how browsers themselves encode line breaks in contenteditable.
+        function textToEditableHtml(text) {
+            return text.split('\n').map(line => {
+                const escaped = line
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+                return '<div>' + (escaped || '<br>') + '</div>';
+            }).join('');
         }
 
         // Strip highlight/bg colors and text colors from HTML while keeping
