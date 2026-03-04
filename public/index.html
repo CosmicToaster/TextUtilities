@@ -16,10 +16,10 @@
     <script src="https://unpkg.com/turndown-plugin-gfm/dist/turndown-plugin-gfm.js"></script>
 
     <style>
-        /* Sporty Minimal Aesthetics */
+        /* Dark Mode Aesthetics */
         body {
-            background-color: #ffffff;
-            color: #111827;
+            background-color: #0f172a;
+            color: #f1f5f9;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
@@ -30,7 +30,7 @@
         /* Placeholder styling */
         [contenteditable]:empty:before {
             content: attr(placeholder);
-            color: #d1d5db;
+            color: #475569;
             pointer-events: none;
             display: block;
             text-align: center;
@@ -40,16 +40,16 @@
         .rich-text-preview h1 { font-size: 2.25rem; font-weight: 800; margin-bottom: 1rem; letter-spacing: -0.05em; text-transform: uppercase; font-style: italic; }
         .rich-text-preview h2 { font-size: 1.875rem; font-weight: 700; margin-bottom: 0.75rem; letter-spacing: -0.025em; }
         .rich-text-preview h3 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
-        .rich-text-preview p { margin-bottom: 1rem; line-height: 1.6; color: #374151; }
-        .rich-text-preview strong { font-weight: 700; color: #000; }
+        .rich-text-preview p { margin-bottom: 1rem; line-height: 1.6; color: #cbd5e1; }
+        .rich-text-preview strong { font-weight: 700; color: #f1f5f9; }
         .rich-text-preview em { font-style: italic; }
-        .rich-text-preview a { color: #2563eb; text-decoration: underline; text-underline-offset: 4px; font-weight: 600; }
-        .rich-text-preview blockquote { border-left: 4px solid #000; padding-left: 1rem; color: #6b7280; font-style: italic; margin: 1rem auto; display: inline-block; text-align: left; }
+        .rich-text-preview a { color: #60a5fa; text-decoration: underline; text-underline-offset: 4px; font-weight: 600; }
+        .rich-text-preview blockquote { border-left: 4px solid #f1f5f9; padding-left: 1rem; color: #94a3b8; font-style: italic; margin: 1rem auto; display: inline-block; text-align: left; }
 
         /* Centered lists trick for minimal design */
         .rich-text-preview ul { list-style-type: square; display: inline-block; text-align: left; margin: 0 auto 1rem auto; padding-left: 1.5rem; }
         .rich-text-preview ol { list-style-type: decimal-leading-zero; display: inline-block; text-align: left; margin: 0 auto 1rem auto; padding-left: 1.5rem; font-weight: 600;}
-        .rich-text-preview li { margin-bottom: 0.5rem; color: #111; }
+        .rich-text-preview li { margin-bottom: 0.5rem; color: #e2e8f0; }
 
         /* Minimal Toast */
         @keyframes toastSlide {
@@ -67,14 +67,14 @@
         }
     </style>
 </head>
-<body class="h-screen w-screen overflow-hidden flex flex-col items-center p-6 selection:bg-blue-600 selection:text-white">
+<body class="h-screen w-screen overflow-hidden flex flex-col items-center px-6 pb-6 pt-12 selection:bg-blue-500 selection:text-white">
 
     <!-- Title / Controls Area -->
     <div class="shrink-0 flex flex-col items-center w-full max-w-2xl pt-4 pb-8 select-none">
 
         <!-- Button (Acts as Primary Title) -->
         <button id="copy-btn" onclick="handleCopy()"
-            class="group flex items-center justify-center gap-5 px-8 sm:px-12 py-4 border-4 border-black rounded-full text-2xl sm:text-3xl font-black italic tracking-tighter uppercase text-black hover:bg-black hover:text-white active:scale-95 transition-all duration-300 focus:outline-none whitespace-nowrap overflow-hidden">
+            class="group flex items-center justify-center gap-5 px-8 sm:px-12 py-4 border-4 border-white rounded-full text-2xl sm:text-3xl font-black italic tracking-tighter uppercase text-white hover:bg-white hover:text-slate-900 active:scale-95 transition-all duration-300 focus:outline-none whitespace-nowrap overflow-hidden">
             <span id="copy-btn-text">COPY TO RICH TEXT</span>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="transform group-hover:scale-110 transition-transform duration-300">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -84,14 +84,14 @@
 
         <!-- Visual Toggle Switch -->
         <div onclick="toggleMode()" class="mt-8 flex items-center justify-center gap-4 cursor-pointer group">
-            <span id="lbl-md" class="text-xs sm:text-sm font-bold tracking-[0.2em] text-black transition-colors w-24 sm:w-28 text-right select-none">MARKDOWN</span>
+            <span id="lbl-md" class="text-xs sm:text-sm font-bold tracking-[0.2em] text-white transition-colors w-24 sm:w-28 text-right select-none">MARKDOWN</span>
 
             <!-- Sporty Pill Switch -->
-            <div class="relative w-[72px] h-10 bg-black rounded-full p-1.5 transition-transform duration-300 group-active:scale-95 shadow-inner">
-                <div id="tgl-knob" class="w-7 h-7 bg-white rounded-full transform translate-x-0 transition-transform duration-300 ease-in-out shadow-md"></div>
+            <div class="relative w-[72px] h-10 bg-slate-100 rounded-full p-1.5 transition-transform duration-300 group-active:scale-95 shadow-inner">
+                <div id="tgl-knob" class="w-7 h-7 bg-slate-900 rounded-full transform translate-x-0 transition-transform duration-300 ease-in-out shadow-md"></div>
             </div>
 
-            <span id="lbl-rt" class="text-xs sm:text-sm font-bold tracking-[0.2em] text-gray-400 transition-colors w-24 sm:w-28 text-left select-none">RICH TEXT</span>
+            <span id="lbl-rt" class="text-xs sm:text-sm font-bold tracking-[0.2em] text-slate-500 transition-colors w-24 sm:w-28 text-left select-none">RICH TEXT</span>
         </div>
     </div>
 
@@ -100,18 +100,18 @@
 
         <!-- Scrollable Input Box -->
         <div id="input-box" contenteditable="true"
-            class="flex-1 w-full overflow-y-auto scrollbar-hide outline-none text-center text-xl sm:text-2xl font-light leading-relaxed text-gray-800 px-4 py-8"
+            class="flex-1 w-full overflow-y-auto scrollbar-hide outline-none text-center text-xl sm:text-2xl font-light leading-relaxed text-slate-200 px-4 py-8"
             placeholder="Type or paste markdown..."></div>
 
         <!-- Sporty separator line that expands dynamically on focus -->
-        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 w-12 h-1 bg-gray-200 group-focus-within:w-full group-focus-within:bg-blue-600 transition-all duration-500 ease-out rounded-full"></div>
+        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 w-12 h-1 bg-slate-700 group-focus-within:w-full group-focus-within:bg-blue-500 transition-all duration-500 ease-out rounded-full"></div>
     </div>
 
     <!-- Hidden Output Box for Clipboard Fallbacks -->
     <div id="output-box" class="absolute -left-[9999px] top-0 opacity-0 pointer-events-none rich-text-preview"></div>
 
     <!-- Sporty Toast Notification -->
-    <div id="toast" class="fixed bottom-8 left-1/2 bg-black text-white px-8 py-3 rounded-none text-xs tracking-[0.2em] font-bold uppercase opacity-0 pointer-events-none transition-transform z-50 shadow-2xl">
+    <div id="toast" class="fixed bottom-8 left-1/2 bg-slate-100 text-slate-900 px-8 py-3 rounded-none text-xs tracking-[0.2em] font-bold uppercase opacity-0 pointer-events-none transition-transform z-50 shadow-2xl">
         Copied
     </div>
 
@@ -179,19 +179,19 @@
 
                 // Visual Switch State: Left
                 tglKnob.classList.remove('translate-x-8');
-                lblMd.classList.remove('text-gray-400');
-                lblMd.classList.add('text-black');
-                lblRt.classList.remove('text-black');
-                lblRt.classList.add('text-gray-400');
+                lblMd.classList.remove('text-slate-500');
+                lblMd.classList.add('text-white');
+                lblRt.classList.remove('text-white');
+                lblRt.classList.add('text-slate-500');
             } else {
                 input.setAttribute('placeholder', 'Type or paste rich text...');
 
                 // Visual Switch State: Right
                 tglKnob.classList.add('translate-x-8');
-                lblMd.classList.remove('text-black');
-                lblMd.classList.add('text-gray-400');
-                lblRt.classList.remove('text-gray-400');
-                lblRt.classList.add('text-black');
+                lblMd.classList.remove('text-white');
+                lblMd.classList.add('text-slate-500');
+                lblRt.classList.remove('text-slate-500');
+                lblRt.classList.add('text-white');
             }
 
             // Re-evaluate current input with the new mode
