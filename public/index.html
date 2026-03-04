@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Translator</title>
+    <title>Copy to Rich Text</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -16,10 +16,17 @@
     <script src="https://unpkg.com/turndown-plugin-gfm/dist/turndown-plugin-gfm.js"></script>
 
     <style>
-        /* Dark Mode Aesthetics */
+        :root {
+            --bg:       #232426;
+            --text:     #C8C7C7;
+            --text-dim: #5c5c5f;
+            --accent:   #766BBF;
+            --knob-bg:  #18181a;
+        }
+
         body {
-            background-color: #0f172a;
-            color: #f1f5f9;
+            background-color: var(--bg);
+            color: var(--text);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
@@ -27,10 +34,10 @@
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Placeholder styling */
+        /* Placeholder */
         [contenteditable]:empty:before {
             content: attr(placeholder);
-            color: #475569;
+            color: var(--text-dim);
             pointer-events: none;
             display: block;
             text-align: center;
@@ -40,25 +47,93 @@
         .rich-text-preview h1 { font-size: 2.25rem; font-weight: 800; margin-bottom: 1rem; letter-spacing: -0.05em; text-transform: uppercase; font-style: italic; }
         .rich-text-preview h2 { font-size: 1.875rem; font-weight: 700; margin-bottom: 0.75rem; letter-spacing: -0.025em; }
         .rich-text-preview h3 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
-        .rich-text-preview p { margin-bottom: 1rem; line-height: 1.6; color: #cbd5e1; }
-        .rich-text-preview strong { font-weight: 700; color: #f1f5f9; }
+        .rich-text-preview p  { margin-bottom: 1rem; line-height: 1.6; color: #a0a0a4; }
+        .rich-text-preview strong { font-weight: 700; color: var(--text); }
         .rich-text-preview em { font-style: italic; }
-        .rich-text-preview a { color: #60a5fa; text-decoration: underline; text-underline-offset: 4px; font-weight: 600; }
-        .rich-text-preview blockquote { border-left: 4px solid #f1f5f9; padding-left: 1rem; color: #94a3b8; font-style: italic; margin: 1rem auto; display: inline-block; text-align: left; }
-
-        /* Centered lists trick for minimal design */
+        .rich-text-preview a  { color: var(--accent); text-decoration: underline; text-underline-offset: 4px; font-weight: 600; }
+        .rich-text-preview blockquote { border-left: 4px solid var(--text); padding-left: 1rem; color: #7a7a7e; font-style: italic; margin: 1rem auto; display: inline-block; text-align: left; }
         .rich-text-preview ul { list-style-type: square; display: inline-block; text-align: left; margin: 0 auto 1rem auto; padding-left: 1.5rem; }
-        .rich-text-preview ol { list-style-type: decimal-leading-zero; display: inline-block; text-align: left; margin: 0 auto 1rem auto; padding-left: 1.5rem; font-weight: 600;}
-        .rich-text-preview li { margin-bottom: 0.5rem; color: #e2e8f0; }
+        .rich-text-preview ol { list-style-type: decimal-leading-zero; display: inline-block; text-align: left; margin: 0 auto 1rem auto; padding-left: 1.5rem; font-weight: 600; }
+        .rich-text-preview li { margin-bottom: 0.5rem; color: var(--text); }
 
-        /* Minimal Toast */
+        /* ── Expressive Text Transitions ── */
+        @keyframes textSlideOut {
+            0%   { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-10px); }
+        }
+        @keyframes textSlideIn {
+            0%   { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .text-out { animation: textSlideOut 0.14s cubic-bezier(0.4, 0, 1, 1) forwards; }
+        .text-in  { animation: textSlideIn  0.22s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+        /* ── Label Crossfade ── */
+        @keyframes labelIn {
+            0%   { opacity: 0; transform: translateY(4px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes labelOut {
+            0%   { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-4px); }
+        }
+        .label-in  { animation: labelIn  0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .label-out { animation: labelOut 0.15s cubic-bezier(0.4, 0, 1, 1) forwards; }
+
+        /* ── Toggle knob: spring easing + squish ── */
+        #tgl-knob {
+            background-color: var(--knob-bg);
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        width 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        #tgl-knob.squish { width: 2.25rem; }
+
+        /* ── Pill bounce ── */
+        @keyframes pillBounce {
+            0%   { transform: scaleX(1)    scaleY(1); }
+            35%  { transform: scaleX(0.88) scaleY(1.12); }
+            70%  { transform: scaleX(1.04) scaleY(0.97); }
+            100% { transform: scaleX(1)    scaleY(1); }
+        }
+        .pill-bounce { animation: pillBounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+        /* ── Toast: spring pop ── */
         @keyframes toastSlide {
-            0% { transform: translate(-50%, 100%); opacity: 0; }
-            10% { transform: translate(-50%, 0); opacity: 1; }
-            90% { transform: translate(-50%, 0); opacity: 1; }
-            100% { transform: translate(-50%, 100%); opacity: 0; }
+            0%   { transform: translate(-50%, 120%) scale(0.9); opacity: 0; }
+            12%  { transform: translate(-50%, 0)    scale(1.03); opacity: 1; }
+            18%  { transform: translate(-50%, 0)    scale(1);    opacity: 1; }
+            88%  { transform: translate(-50%, 0)    scale(1);    opacity: 1; }
+            100% { transform: translate(-50%, 120%) scale(0.9);  opacity: 0; }
         }
         .toast-animate { animation: toastSlide 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        /* ── Copy button icon: tilt + scale on hover ── */
+        #copy-btn:hover .copy-icon { transform: rotate(-8deg) scale(1.15); }
+        .copy-icon { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+        /* ── Button border & text uses CSS var so hover invert works ── */
+        #copy-btn {
+            border-color: var(--text);
+            color: var(--text);
+        }
+        #copy-btn:hover {
+            background-color: var(--text);
+            color: var(--bg);
+        }
+
+        /* ── Toggle labels ── */
+        .lbl-active { color: var(--text); }
+        .lbl-dim    { color: var(--text-dim); }
+
+        /* ── Separator ── */
+        #separator {
+            background-color: #3a3a3e;
+        }
+        /* Focus state handled inline via JS class so we can override color */
+        .group:focus-within #separator {
+            width: 100%;
+            background-color: var(--accent);
+        }
 
         /* Prevent mobile browser quirks */
         html, body {
@@ -67,66 +142,68 @@
         }
     </style>
 </head>
-<body class="h-screen w-screen overflow-hidden flex flex-col items-center px-6 pb-6 pt-12 selection:bg-blue-500 selection:text-white">
+<body class="h-screen w-screen overflow-hidden flex flex-col items-center px-6 pb-6 pt-12 selection:bg-[#766BBF] selection:text-white">
 
     <!-- Title / Controls Area -->
     <div class="shrink-0 flex flex-col items-center w-full max-w-2xl pt-4 pb-8 select-none">
 
         <!-- Button (Acts as Primary Title) -->
         <button id="copy-btn" onclick="handleCopy()"
-            class="group flex items-center justify-center gap-5 px-8 sm:px-12 py-4 border-4 border-white rounded-full text-2xl sm:text-3xl font-black italic tracking-tighter uppercase text-white hover:bg-white hover:text-slate-900 active:scale-95 transition-all duration-300 focus:outline-none whitespace-nowrap overflow-hidden">
+            class="group flex items-center justify-center gap-5 px-8 sm:px-12 py-4 border-4 rounded-full text-2xl sm:text-3xl font-black italic tracking-tighter uppercase active:scale-90 transition-all duration-300 focus:outline-none whitespace-nowrap overflow-hidden">
             <span id="copy-btn-text">COPY TO RICH TEXT</span>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="transform group-hover:scale-110 transition-transform duration-300">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="copy-icon shrink-0">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
             </svg>
         </button>
 
         <!-- Visual Toggle Switch -->
-        <div onclick="toggleMode()" class="mt-8 flex items-center justify-center gap-4 cursor-pointer group">
-            <span id="lbl-md" class="text-xs sm:text-sm font-bold tracking-[0.2em] text-white transition-colors w-24 sm:w-28 text-right select-none">MARKDOWN</span>
+        <div onclick="toggleMode()" class="mt-8 flex items-center justify-center gap-4 cursor-pointer">
+            <span id="lbl-md" class="lbl-active text-xs sm:text-sm font-bold tracking-[0.2em] w-24 sm:w-28 text-right select-none">MARKDOWN</span>
 
-            <!-- Sporty Pill Switch -->
-            <div class="relative w-[72px] h-10 bg-slate-100 rounded-full p-1.5 transition-transform duration-300 group-active:scale-95 shadow-inner">
-                <div id="tgl-knob" class="w-7 h-7 bg-slate-900 rounded-full transform translate-x-0 transition-transform duration-300 ease-in-out shadow-md"></div>
+            <!-- Pill -->
+            <div id="tgl-pill" class="relative w-[72px] h-10 bg-[#C8C7C7] rounded-full p-1.5 shadow-inner">
+                <div id="tgl-knob" class="w-7 h-7 rounded-full transform translate-x-0 shadow-md"></div>
             </div>
 
-            <span id="lbl-rt" class="text-xs sm:text-sm font-bold tracking-[0.2em] text-slate-500 transition-colors w-24 sm:w-28 text-left select-none">RICH TEXT</span>
+            <span id="lbl-rt" class="lbl-dim text-xs sm:text-sm font-bold tracking-[0.2em] w-24 sm:w-28 text-left select-none">RICH TEXT</span>
         </div>
     </div>
 
-    <!-- Content Area: Single vertical scrollable box -->
+    <!-- Content Area -->
     <div class="flex-1 w-full max-w-2xl flex flex-col min-h-0 pb-12 relative group">
 
-        <!-- Scrollable Input Box -->
         <div id="input-box" contenteditable="true"
-            class="flex-1 w-full overflow-y-auto scrollbar-hide outline-none text-center text-xl sm:text-2xl font-light leading-relaxed text-slate-200 px-4 py-8"
+            class="flex-1 w-full overflow-y-auto scrollbar-hide outline-none text-center text-xl sm:text-2xl font-light leading-relaxed px-4 py-8"
+            style="color: var(--text);"
             placeholder="Type or paste markdown..."></div>
 
-        <!-- Sporty separator line that expands dynamically on focus -->
-        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 w-12 h-1 bg-slate-700 group-focus-within:w-full group-focus-within:bg-blue-500 transition-all duration-500 ease-out rounded-full"></div>
+        <div id="separator" class="absolute bottom-6 left-1/2 -translate-x-1/2 w-12 h-1 rounded-full transition-all duration-500 ease-out"></div>
     </div>
 
-    <!-- Hidden Output Box for Clipboard Fallbacks -->
+    <!-- Hidden Output Box -->
     <div id="output-box" class="absolute -left-[9999px] top-0 opacity-0 pointer-events-none rich-text-preview"></div>
 
-    <!-- Sporty Toast Notification -->
-    <div id="toast" class="fixed bottom-8 left-1/2 bg-slate-100 text-slate-900 px-8 py-3 rounded-none text-xs tracking-[0.2em] font-bold uppercase opacity-0 pointer-events-none transition-transform z-50 shadow-2xl">
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-8 left-1/2 px-8 py-3 rounded-none text-xs tracking-[0.2em] font-bold uppercase opacity-0 pointer-events-none z-50 shadow-2xl"
+         style="background-color: var(--text); color: var(--bg);">
         Copied
     </div>
 
     <script>
         // DOM Elements
-        const input = document.getElementById('input-box');
-        const output = document.getElementById('output-box');
-        const copyBtn = document.getElementById('copy-btn');
+        const input       = document.getElementById('input-box');
+        const output      = document.getElementById('output-box');
+        const copyBtn     = document.getElementById('copy-btn');
         const copyBtnText = document.getElementById('copy-btn-text');
-        const toast = document.getElementById('toast');
+        const toast       = document.getElementById('toast');
+        const separator   = document.getElementById('separator');
 
         // Toggle Elements
-        const lblMd = document.getElementById('lbl-md');
-        const lblRt = document.getElementById('lbl-rt');
+        const lblMd   = document.getElementById('lbl-md');
+        const lblRt   = document.getElementById('lbl-rt');
         const tglKnob = document.getElementById('tgl-knob');
+        const tglPill = document.getElementById('tgl-pill');
 
         // State
         let currentMode = 'md2rt'; // 'md2rt' or 'rt2md'
@@ -140,61 +217,94 @@
         input.addEventListener('input', update);
         input.addEventListener('paste', () => setTimeout(update, 10));
 
+        // ── Animated text swap ──
+        function animateText(el, newText) {
+            el.classList.remove('text-out', 'text-in');
+            void el.offsetWidth;
+            el.classList.add('text-out');
+            setTimeout(() => {
+                el.classList.remove('text-out');
+                el.innerText = newText;
+                void el.offsetWidth;
+                el.classList.add('text-in');
+                setTimeout(() => el.classList.remove('text-in'), 300);
+            }, 140);
+        }
+
+        // ── Label crossfade ──
+        function crossfadeLabels(activeEl, dimEl) {
+            activeEl.classList.remove('label-in');
+            void activeEl.offsetWidth;
+            activeEl.classList.add('label-in');
+
+            dimEl.classList.remove('label-out');
+            void dimEl.offsetWidth;
+            dimEl.classList.add('label-out');
+            setTimeout(() => dimEl.classList.remove('label-out'), 200);
+        }
+
         // Toggle Logic
         function toggleMode() {
-            // Swap state
             currentMode = currentMode === 'md2rt' ? 'rt2md' : 'md2rt';
 
-            const newText = currentMode === 'md2rt' ? 'COPY TO RICH TEXT' : 'COPY TO MARKDOWN';
-            const oldText = copyBtnText.innerText;
+            const newBtnText  = currentMode === 'md2rt' ? 'COPY TO RICH TEXT' : 'COPY TO MARKDOWN';
+            const newHolder   = currentMode === 'md2rt' ? 'Type or paste markdown...' : 'Type or paste rich text...';
+            const newTabTitle = currentMode === 'md2rt' ? 'Copy to Rich Text' : 'Copy to Markdown';
 
-            // --- Smooth width animation ---
-            // 1. Get start width
-            const startWidth = copyBtn.getBoundingClientRect().width;
+            // ── Browser tab title ──
+            document.title = newTabTitle;
 
-            // 2. Temporarily set to auto and insert new text to measure target width
-            copyBtn.style.width = 'auto';
-            copyBtnText.innerText = newText;
-            const endWidth = copyBtn.getBoundingClientRect().width;
+            // ── Pill bounce ──
+            tglPill.classList.remove('pill-bounce');
+            void tglPill.offsetWidth;
+            tglPill.classList.add('pill-bounce');
+            setTimeout(() => tglPill.classList.remove('pill-bounce'), 450);
 
-            // 3. Revert to start state to prepare for transition
-            copyBtnText.innerText = oldText;
-            copyBtn.style.width = startWidth + 'px';
-
-            // 4. Force browser layout recalculation
-            void copyBtn.offsetWidth;
-
-            // 5. Apply target state to trigger CSS transition
-            copyBtnText.innerText = newText;
-            copyBtn.style.width = endWidth + 'px';
-
-            // 6. Clean up inline styles after transition finishes
+            // ── Knob squish → slide ──
+            tglKnob.classList.add('squish');
             setTimeout(() => {
-                copyBtn.style.width = '';
-            }, 300);
+                tglKnob.classList.remove('squish');
+                if (currentMode === 'md2rt') {
+                    tglKnob.classList.remove('translate-x-8');
+                } else {
+                    tglKnob.classList.add('translate-x-8');
+                }
+            }, 80);
 
-            // Update UI based on new state
+            // ── Button: smooth width + text slide ──
+            const startWidth = copyBtn.getBoundingClientRect().width;
+            copyBtn.style.width = 'auto';
+            copyBtnText.innerText = newBtnText;
+            const endWidth = copyBtn.getBoundingClientRect().width;
+            copyBtnText.innerText = copyBtnText.innerText;
+
+            copyBtn.style.width = startWidth + 'px';
+            void copyBtn.offsetWidth;
+            copyBtn.style.width = endWidth + 'px';
+            setTimeout(() => { copyBtn.style.width = ''; }, 320);
+
+            animateText(copyBtnText, newBtnText);
+
+            // ── Labels ──
+            input.setAttribute('placeholder', newHolder);
             if (currentMode === 'md2rt') {
-                input.setAttribute('placeholder', 'Type or paste markdown...');
-
-                // Visual Switch State: Left
-                tglKnob.classList.remove('translate-x-8');
-                lblMd.classList.remove('text-slate-500');
-                lblMd.classList.add('text-white');
-                lblRt.classList.remove('text-white');
-                lblRt.classList.add('text-slate-500');
+                crossfadeLabels(lblMd, lblRt);
+                lblMd.classList.replace('lbl-dim', 'lbl-active');
+                lblRt.classList.replace('lbl-active', 'lbl-dim');
             } else {
-                input.setAttribute('placeholder', 'Type or paste rich text...');
-
-                // Visual Switch State: Right
-                tglKnob.classList.add('translate-x-8');
-                lblMd.classList.remove('text-white');
-                lblMd.classList.add('text-slate-500');
-                lblRt.classList.remove('text-slate-500');
-                lblRt.classList.add('text-white');
+                crossfadeLabels(lblRt, lblMd);
+                lblRt.classList.replace('lbl-dim', 'lbl-active');
+                lblMd.classList.replace('lbl-active', 'lbl-dim');
             }
 
-            // Re-evaluate current input with the new mode
+            // ── Separator flash ──
+            separator.style.transition = 'none';
+            separator.style.backgroundColor = '#766BBF';
+            setTimeout(() => {
+                separator.style.transition = '';
+                separator.style.backgroundColor = '';
+            }, 200);
+
             update();
         }
 
@@ -203,7 +313,6 @@
             const html = input.innerHTML;
             const text = input.innerText;
 
-            // Generate format in the background hidden container
             if (currentMode === 'md2rt') {
                 currentOutputHtml = marked.parse(text);
                 output.innerHTML = currentOutputHtml;
@@ -213,7 +322,6 @@
             }
         }
 
-        // Cleanup empty divs created by contenteditable on delete
         input.addEventListener('keyup', (e) => {
             if (e.key === 'Backspace' || e.key === 'Delete') {
                 if (input.innerText.trim() === '') {
@@ -228,7 +336,6 @@
             const text = input.innerText;
             const html = input.innerHTML;
 
-            // If empty, just show an error toast
             if (!text.trim() && !html.includes('<img')) {
                 triggerToast("NOTHING TO COPY");
                 return;
@@ -236,13 +343,12 @@
 
             let copied = false;
 
-            // 1. Attempt modern Clipboard API first
             try {
                 if (navigator.clipboard && window.isSecureContext) {
                     if (currentMode === 'md2rt' && window.ClipboardItem) {
                         const data = new ClipboardItem({
-                            "text/html": new Blob([currentOutputHtml], { type: "text/html" }),
-                            "text/plain": new Blob([output.innerText], { type: "text/plain" })
+                            "text/html":  new Blob([currentOutputHtml], { type: "text/html" }),
+                            "text/plain": new Blob([output.innerText],  { type: "text/plain" })
                         });
                         await navigator.clipboard.write([data]);
                     } else {
@@ -251,10 +357,9 @@
                     copied = true;
                 }
             } catch (err) {
-                console.warn("Modern clipboard API blocked or failed, failing over to execCommand...", err);
+                console.warn("Modern clipboard API blocked, falling back...", err);
             }
 
-            // 2. Fallback to older document.execCommand if modern API threw an error
             if (!copied) {
                 try {
                     if (currentMode === 'md2rt') {
@@ -269,38 +374,33 @@
                 }
             }
 
-            // 3. Show success notification
             if (copied) triggerToast("COPIED TO CLIPBOARD");
         }
 
         function fallbackCopyText(text) {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            textArea.style.position = "fixed";
-            textArea.style.top = "0";
-            textArea.style.left = "0";
-            textArea.style.opacity = "0";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            ta.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+            document.body.appendChild(ta);
+            ta.focus(); ta.select();
             document.execCommand("copy");
-            document.body.removeChild(textArea);
+            document.body.removeChild(ta);
         }
 
         function fallbackCopyRichText(element) {
-            const selection = window.getSelection();
+            const sel = window.getSelection();
             const range = document.createRange();
             range.selectNodeContents(element);
-            selection.removeAllRanges();
-            selection.addRange(range);
+            sel.removeAllRanges();
+            sel.addRange(range);
             document.execCommand("copy");
-            selection.removeAllRanges();
+            sel.removeAllRanges();
         }
 
         function triggerToast(message) {
             toast.innerText = message;
             toast.classList.remove('toast-animate');
-            void toast.offsetWidth; // force browser reflow
+            void toast.offsetWidth;
             toast.classList.add('toast-animate');
         }
     </script>
