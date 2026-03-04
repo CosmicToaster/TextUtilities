@@ -1,0 +1,12 @@
+{
+  "name": "text-utilities",
+  "version": "1.0.0",
+  "description": "Markdown to Rich Text translator — sporty, minimal, fast.",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve public",
+    "start": "npx serve public"
+  },
+  "keywords": ["markdown", "rich-text", "translator", "converter"],
+  "license": "MIT"
+}
